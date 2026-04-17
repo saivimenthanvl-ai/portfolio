@@ -1,11 +1,34 @@
+# Portfolio website
 
-  # Personalised portfolio website
+## Overview
 
-  This is a code bundle for Personalised portfolio website. The original project is available at https://www.figma.com/design/lB3no3XZ7tBKBRtsfmXhUB/Personalised-portfolio-website.
+This portfolio website is designed to present personal branding, technical projects, and professional links in a polished and responsive interface. It serves as a central hub for recruiters, collaborators, and developers to explore featured work, GitHub repositories, and social profiles.
 
-  ## Running the code
+## Installation
 
-  Run `npm i` to install the dependencies.
+Clone the repository:
 
-  Run `npm run dev` to start the development server.
-  
+git clone https://github.com/your-username/your-portfolio-repo.git
+
+
+
+Install dependencies:
+
+npm install
+
+Run the development server:
+
+npm run dev
+
+
+## Production Build
+
+
+npm run build
+
+
+To preview the build:
+
+
+npm run preview
+
