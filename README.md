@@ -23,12 +23,14 @@ npm run dev
 
 ## Production Build
 
-
 npm run build
 
 
 To preview the build:
 
-
 npm run preview
 
+
+vercel deployment
+
+https://portfolio-git-main-saivimenthanvlai.vercel.app/
