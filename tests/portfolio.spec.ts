@@ -1,12 +1,34 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 
-test('shows only the three key projects with GitHub and live links', async ({ page }) => {
+test('renders every resume section', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#projects').getByRole('link', { name: /^GitHub/ })).toHaveCount(3);
-  await expect(page.locator('#projects').getByRole('link', { name: /^Live Demo/ })).toHaveCount(2);
-  await expect(page.getByText('AI Edge Tracking System')).toHaveCount(0);
-  await expect(page.getByText('Automated Medical Diagnosis')).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Sai Vimenthan V L');
+  for (const name of ['Projects', 'Experience', 'Skills', 'Education & Certifications']) {
+    await expect(page.getByRole('heading', { name, level: 2 })).toBeVisible();
+  }
+  await expect(page.getByText('Deffotech AI')).toBeVisible();
+  await expect(page.getByText('AWS Certified Machine Learning – Specialty')).toBeVisible();
+});
+
+test('lists only the four resume projects with GitHub (and demo) links', async ({ page }) => {
+  await page.goto('/');
+  const projects = page.locator('#projects');
+  await expect(projects.getByRole('heading', { level: 3 })).toHaveText([
+    'ASCRA',
+    'SOS Healthcare',
+    'Farmculture',
+    'Monkeypox Skin-Lesion Classification',
+  ]);
+  await expect(projects.getByRole('link', { name: /GitHub/ })).toHaveCount(4);
+  await expect(projects.getByRole('link', { name: /Live Demo/ })).toHaveCount(2);
+  await expect(page.getByText('Edge Tracking')).toHaveCount(0);
+});
+
+test('nav scrolls to a section', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Skills' }).click();
+  await expect(page.locator('#skills')).toBeInViewport();
 });
 
 test('visitors never see the photo or upload control', async ({ page }) => {
@@ -27,4 +49,11 @@ test('owner can upload a photo that persists only in their browser', async ({ pa
   const other = await (await browser.newContext()).newPage();
   await other.goto('/');
   await expect(other.getByRole('img', { name: 'Sai Vimenthan V L' })).toHaveCount(0);
+});
+
+test('mobile layout has no horizontal scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(overflow).toBe(false);
 });

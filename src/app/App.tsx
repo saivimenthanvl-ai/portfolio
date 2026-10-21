@@ -1,23 +1,23 @@
-import { Navigation } from './components/Navigation';
-import { Hero } from './components/Hero';
-import { Projects } from './components/Projects';
-import { WorkExperience } from './components/WorkExperience';
-import { Education } from './components/Education';
-import { Skills } from './components/Skills';
-import { Certificates } from './components/Certificates';
-import { Contact } from './components/Contact';
+import { Nav } from './components/Nav';
+import { Landing } from './components/Landing';
+import { Showcase } from './components/Showcase';
+import { Contact, Education, Experience, Skills } from './components/Sections';
+import { Background, ScrollProgress } from './components/Motion';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <Navigation />
-      <Hero />
-      <Projects />
-      <WorkExperience />
-      <Skills />
-      <Education />
-      <Certificates />
-      <Contact />
+    <div className="min-h-screen text-slate-200">
+      <Background />
+      <ScrollProgress />
+      <Nav />
+      <main>
+        <Landing />
+        <Showcase />
+        <Experience />
+        <Skills />
+        <Education />
+        <Contact />
+      </main>
     </div>
   );
 }
