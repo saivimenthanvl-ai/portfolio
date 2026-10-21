@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { Rocket, ExternalLink } from "lucide-react";
+import { Rocket, ExternalLink, Github } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,10 +9,21 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 
-const projects = [
+type Project = {
+  title: string;
+  link: string;
+  demo?: string;
+  period?: string;
+  description: string;
+  achievements: string[];
+  technologies: string[];
+};
+
+const projects: Project[] = [
   {
   title: "Farmculture",
   link: "https://github.com/saivimenthanvl-ai/farmculture",
+  demo: "https://farmculture.vercel.app",
   description:
     "An AI-powered smart farming assistant that helps farmers with real-time weather insights, crop guidance, disease detection, and multilingual support for better agricultural decision-making and sustainable productivity.",
   achievements: [
@@ -38,6 +49,7 @@ const projects = [
   {
     title: "AI-Farmer-Rural Innovation",
     link: "https://github.com/saivimenthanvl-ai/AI-Farmer-Rural-Innovation",
+    demo: "https://ai-farmer-rural-saivimenthanvlai.vercel.app",
     description:
       "Develop an end-to-end product of an AI assistant that offers information such as crop diseases, treatment, markets, government schemes, etc., in one go.",
     achievements: [
@@ -75,48 +87,6 @@ const projects = [
       "Granite LLM",
       "RAG",
       "Multi-Agent AI",
-    ],
-  },
-  {
-    title:
-      "Automated Medical Diagnosis and Personalized Treatment Optimization",
-    link: "https://github.com/saivimenthanvl-ai/Automated-Medical-Diagnosis-Personalized-Treatment-Optimization",
-    description:
-      "A layered clinical decision-support framework for automated medical diagnosis and personalized treatment optimization using multiple reinforcement learning approaches.",
-    achievements: [
-      "Implemented Classical Reinforcement Learning algorithms including SARSA, Q-Learning, and Monte Carlo methods for treatment decision optimization",
-      "Developed Deep Reinforcement Learning models using DQN and Double DQN for handling complex state spaces in medical diagnosis",
-      "Applied Inverse Reinforcement Learning to infer reward functions from expert medical trajectories and clinical best practices",
-      "Built Multi-Agent Reinforcement Learning system for coordinated care agents managing different aspects of patient treatment",
-      "Integrated safety guardrails and explainability layers to ensure transparent and accountable healthcare decision support",
-    ],
-    technologies: [
-      "Reinforcement Learning",
-      "Deep RL (DQN)",
-      "Inverse RL",
-      "Multi-Agent RL",
-      "Healthcare AI",
-      "Explainable AI",
-    ],
-  },
-  {
-    title: "AI Edge Tracking System",
-    link: "https://github.com/saivimenthanvl-ai/Object-Detection-IoT-based-Edge-AI-system",
-    description:
-      "A minimal AI video analytics pipeline for person and vehicle tracking using Ultralytics YOLO and ByteTrack, designed as a safe starter system for real-time object tracking.",
-    achievements: [
-      "Implemented person tracking with high accuracy using Ultralytics YOLO object detection model",
-      "Integrated vehicle tracking capabilities with consistent track ID assignment across video frames",
-      "Deployed ByteTrack algorithm for robust multi-object tracking in real-time video streams",
-      "Generated annotated video outputs with bounding boxes and track IDs for visual verification",
-      "Designed modular architecture to enable future extensions like helmet violation detection and number plate OCR",
-    ],
-    technologies: [
-      "Ultralytics YOLO",
-      "ByteTrack",
-      "Computer Vision",
-      "Video Analytics",
-      "Python",
     ],
   },
 ];
@@ -200,15 +170,28 @@ export function Projects() {
                         </Badge>
                       ))}
                     </div>
-                    <a
-                      href={project.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors"
-                    >
-                      View Project
-                      <ExternalLink size={16} />
-                    </a>
+                    <div className="flex flex-wrap gap-4">
+                      <a
+                        href={project.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors"
+                      >
+                        GitHub
+                        <Github size={16} />
+                      </a>
+                      {project.demo && (
+                        <a
+                          href={project.demo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors"
+                        >
+                          Live Demo
+                          <ExternalLink size={16} />
+                        </a>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>

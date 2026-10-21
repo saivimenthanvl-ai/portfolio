@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Mail, MapPin, Linkedin, Github } from 'lucide-react';
 import { Button } from './ui/button';
+import { ProfilePhoto } from './ProfilePhoto';
 
 export function Hero() {
   return (
@@ -11,6 +12,7 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
+          <ProfilePhoto />
           <h1 className="text-5xl md:text-7xl mb-4">
             Sai Vimenthan V L
           </h1>
