@@ -25,6 +25,22 @@ test('lists only the four resume projects with GitHub (and demo) links', async (
   await expect(page.getByText('Edge Tracking')).toHaveCount(0);
 });
 
+test('hero renders two-column 3d spline container with aria-hidden', async ({ page }) => {
+  await page.goto('/');
+  const splineContainer = page.getByTestId('spline-scene-container');
+  await expect(splineContainer).toBeVisible();
+  await expect(splineContainer).toHaveAttribute('aria-hidden', 'true');
+});
+
+test('featured project renders industrial metrics panel within ContainerScroll', async ({ page }) => {
+  await page.goto('/');
+  const projects = page.locator('#projects');
+  await expect(projects.getByText('100%')).toBeVisible();
+  await expect(projects.getByText('Valid JSON records (200/200 eval)')).toBeVisible();
+  await expect(projects.getByText('92.5%').first()).toBeVisible();
+  await expect(projects.getByText('82,400')).toBeVisible();
+});
+
 test('nav scrolls to a section', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Skills' }).click();
@@ -51,9 +67,21 @@ test('owner can upload a photo that persists only in their browser', async ({ pa
   await expect(other.getByRole('img', { name: 'Sai Vimenthan V L' })).toHaveCount(0);
 });
 
-test('mobile layout has no horizontal scroll', async ({ page }) => {
+test('mobile layout has no horizontal scroll at 375px', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(overflow).toBe(false);
+});
+
+test('honors prefers-reduced-motion without breaking layout', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Sai Vimenthan V L');
+  const splineContainer = page.getByTestId('spline-scene-container');
+  await expect(splineContainer).toBeVisible();
+  // Static fallback visible
+  await expect(splineContainer.getByText('AI · 3D')).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflow).toBe(false);
 });

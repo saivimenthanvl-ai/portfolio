@@ -6,7 +6,7 @@ import { Background, ScrollProgress } from './components/Motion';
 
 export default function App() {
   return (
-    <div className="min-h-screen text-slate-200">
+    <div className="min-h-screen text-slate-200 overflow-x-clip">
       <Background />
       <ScrollProgress />
       <Nav />
