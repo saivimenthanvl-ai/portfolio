@@ -179,14 +179,14 @@ export function Intro() {
         </div>
 
         {/* Profile photo: uploaded photo bundled for Vercel/GitHub */}
-        <Reveal delay={0.3} className="w-full lg:col-span-4 order-last lg:order-none mt-6 lg:mt-0">
-          <figure className="w-full max-w-xs md:max-w-sm lg:ml-auto">
+        <Reveal delay={0.3} className="w-full lg:col-span-4 order-last lg:order-none mt-6 lg:mt-0 flex lg:justify-end">
+          <figure className="w-fit max-w-[300px] sm:max-w-[320px]">
             {photo ? (
-              <div>
+              <div className="inline-block w-fit">
                 <img
                   src={photo}
                   alt={profile.name}
-                  className="block h-auto w-full max-h-[460px] object-contain border border-rule shadow-sm"
+                  className="block h-auto w-auto max-w-full max-h-[420px] rounded-none border border-rule shadow-sm"
                 />
                 {isLocal && (
                   <div className="mt-2 flex items-center justify-between font-mono text-[11px] text-mute">
