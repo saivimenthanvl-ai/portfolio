@@ -1,18 +1,16 @@
-import { Nav } from './components/Nav';
-import { Landing } from './components/Landing';
-import { Showcase } from './components/Showcase';
-import { Contact, Education, Experience, Skills } from './components/Sections';
-import { Background, ScrollProgress } from './components/Motion';
+import { Masthead, ScrollBar } from './components/Layout';
+import { Intro } from './components/Intro';
+import { Work } from './components/Work';
+import { Contact, Education, Experience, Skills } from './components/Record';
 
 export default function App() {
   return (
-    <div className="min-h-screen text-slate-200">
-      <Background />
-      <ScrollProgress />
-      <Nav />
+    <div className="min-h-screen bg-paper text-ink">
+      <ScrollBar />
+      <Masthead />
       <main>
-        <Landing />
-        <Showcase />
+        <Intro />
+        <Work />
         <Experience />
         <Skills />
         <Education />
