@@ -95,14 +95,15 @@ export const projects: Project[] = [
     demo: 'https://farmculture.vercel.app',
   },
   {
-    title: 'Monkeypox Skin-Lesion Classification',
+    title: 'Virus Electron Microscopy Classification',
     kind: 'Medical image classification',
-    metric: { value: '90%', label: 'test accuracy (27/30 images)' },
+    metric: { value: '3 classes', label: 'Adenovirus, Cowpox, Dengue sample (31 micrographs)' },
     points: [
-      'Trained a four-class VGG16 transfer-learning classifier; fixed oversampling-related data leakage by splitting before balancing and achieved 90% test accuracy (27/30 images) on a 299-image sample.',
+      'Transfer-learning experiments for classifying virus electron-microscopy (TEM) images using ImageNet-pretrained MobileNetV2, ResNet-50 and EfficientNetB0 + LSTM models.',
+      'One stratified 60/20/20 train, validation and test split with a check that no file appears in two sets; test results are reported with a 95% Wilson interval, plus stratified 5-fold cross-validation of a logistic-regression probe on frozen features.',
     ],
-    tags: ['VGG16', 'Transfer learning', 'TensorFlow/Keras'],
-    github: `${GH}/Monkeypox-Classification`,
+    tags: ['Machine learning', 'Deep learning', 'Python'],
+    github: `${GH}/virus_electron_classification`,
   },
 ];
 
@@ -110,7 +111,7 @@ export const skills = [
   { group: 'Languages', items: ['Python', 'Java', 'JavaScript', 'TypeScript', 'SQL'] },
   {
     group: 'AI / LLM',
-    items: ['PyTorch', 'TensorFlow/Keras', 'Hugging Face Transformers', 'Qwen', 'RAG', 'OpenCV'],
+    items: ['PyTorch', 'TensorFlow/Keras', 'Hugging Face Transformers', 'Machine learning', 'Deep learning', 'RAG', 'OpenCV'],
   },
   {
     group: 'Full-stack',

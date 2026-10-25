@@ -18,7 +18,7 @@ test('lists only the four resume projects, each linked to GitHub', async ({ page
     'ASCRA',
     'SOS Healthcare',
     'Farmculture',
-    'Monkeypox Skin-Lesion Classification',
+    'Virus Electron Microscopy Classification',
   ]);
   const rows = projects.locator('article');
   await expect(rows.getByRole('link', { name: /GitHub/ })).toHaveCount(4);
@@ -55,7 +55,7 @@ test('nav scrolls to a section', async ({ page }) => {
 test('lists updated skills accurately', async ({ page }) => {
   await page.goto('/');
   const skillsSection = page.locator('#skills');
-  await expect(skillsSection.getByText('PyTorch / TensorFlow/Keras / Hugging Face Transformers / Qwen / RAG / OpenCV')).toBeVisible();
+  await expect(skillsSection.getByText('PyTorch / TensorFlow/Keras / Hugging Face Transformers / Machine learning / Deep learning / RAG / OpenCV')).toBeVisible();
   await expect(skillsSection.getByText('React / Next.js / Node.js/Express / FastAPI / Firebase / Supabase/PostgreSQL / REST APIs')).toBeVisible();
   await expect(skillsSection.getByText('Git / GitHub / Linux')).toBeVisible();
   // Removed items should not appear in the skills section
