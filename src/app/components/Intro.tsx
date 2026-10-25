@@ -80,9 +80,9 @@ function Portrait({ photo, setPhoto }: { photo: string | null; setPhoto: (p: str
         className={`group relative block w-full overflow-hidden transition-colors ${photo ? '' : 'aspect-[4/5] border border-dashed border-rule bg-wash hover:border-ink'}`}
       >
         {photo ? (
-          <img src={photo} alt={profile.name} className="block h-auto w-full" />
+          <img src={photo} alt={profile.name} className="block h-auto w-full max-h-[500px] object-contain" />
         ) : (
-          <span className="flex h-full flex-col items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-mute group-hover:text-ink">
+          <span className="flex aspect-[4/5] h-full w-full flex-col items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-mute group-hover:text-ink">
             <Camera size={22} strokeWidth={1.5} />
             Upload photo
           </span>
@@ -112,13 +112,13 @@ export function Intro() {
   const { isOwner, photo, setPhoto } = useOwnerPhoto();
 
   return (
-    <section className="mx-auto flex min-h-screen max-w-7xl flex-col justify-end px-5 pb-16 pt-36 md:px-8">
+    <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-between px-5 pb-16 pt-28 md:pt-36 md:px-8">
       <div className="grid items-end gap-12 lg:grid-cols-12">
         <div className={isOwner ? 'lg:col-span-8' : 'lg:col-span-12'}>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
             className="mb-6 font-mono text-xs uppercase tracking-[0.22em] text-mute"
           >
             {profile.role} — {profile.location}
@@ -127,12 +127,12 @@ export function Intro() {
           <h1 className="text-[clamp(3rem,9vw,8.5rem)] font-medium leading-[0.92] tracking-[-0.045em] text-ink">
             {profile.name.split(' ').map((w, i) => (
               <Fragment key={i}>
-                <span className="inline-block overflow-hidden pb-[0.08em] align-bottom">
+                <span className="inline-block overflow-hidden pb-3 align-bottom">
                   <motion.span
                     className="inline-block"
                     initial={{ y: '105%' }}
                     animate={{ y: 0 }}
-                    transition={{ delay: 0.1 + i * 0.07, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ delay: 0.05 + i * 0.05, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   >
                     {w}
                   </motion.span>
@@ -141,7 +141,7 @@ export function Intro() {
             ))}
           </h1>
 
-          <Reveal delay={0.5} className="mt-8 max-w-2xl">
+          <Reveal delay={0.2} className="mt-8 max-w-2xl">
             <p className="font-mono text-sm text-signal">{profile.tagline.join('  /  ')}</p>
             <p className="mt-4 text-lg leading-8 text-mute">{profile.summary}</p>
           </Reveal>

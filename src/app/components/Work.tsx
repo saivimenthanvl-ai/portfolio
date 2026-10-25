@@ -10,7 +10,7 @@ export function Work() {
       <div>
         {projects.map((p, i) => (
           <Reveal key={p.title}>
-            <article className="group grid gap-6 border-t border-rule py-9 transition-colors first:border-t-0 hover:bg-wash/60 md:grid-cols-12 md:gap-8 md:px-4 md:-mx-4">
+            <article className="group grid gap-6 border-t border-rule py-10 transition-colors first:border-t-0 md:grid-cols-12 md:gap-8">
               <div className="font-mono text-xs text-mute md:col-span-1 md:pt-2">{String(i + 1).padStart(2, '0')}</div>
 
               <div className="md:col-span-4">

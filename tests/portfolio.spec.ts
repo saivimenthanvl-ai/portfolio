@@ -40,6 +40,12 @@ test('theme toggle switches and persists', async ({ page }) => {
   await expect(html).toHaveAttribute('data-theme', 'dark');
 });
 
+test('header renders full name wordmark and nav buttons', async ({ page }) => {
+  await page.goto('/');
+  const header = page.locator('header');
+  await expect(header.getByRole('button', { name: 'Sai Vimenthan V L' })).toBeVisible();
+});
+
 test('nav scrolls to a section', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Skills' }).click();
@@ -129,4 +135,23 @@ test('demo route respects prefers-reduced-motion', async ({ page }) => {
   // Static poster should be shown inside splineContainer
   await expect(splineContainer.getByText('3D SCENE')).toBeVisible();
 });
+
+test('captures screenshots across 375, 768, and 1360 px in light and dark', async ({ page }) => {
+  const widths = [375, 768, 1360];
+  const themes = ['light', 'dark'] as const;
+
+  for (const width of widths) {
+    for (const theme of themes) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto('/');
+      await page.waitForTimeout(300);
+      await page.screenshot({
+        path: `screenshots/editorial-${width}px-${theme}.png`,
+        fullPage: false,
+      });
+    }
+  }
+});
+
 

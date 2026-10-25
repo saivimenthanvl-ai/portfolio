@@ -57,39 +57,42 @@ export function Masthead() {
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-rule bg-paper/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 px-5 py-3 md:px-8">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-rule bg-paper/90 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-8 px-5 py-3.5 md:px-8">
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="font-mono text-sm font-medium tracking-tight text-ink"
+          className="font-medium tracking-tight text-ink transition-colors hover:text-signal"
         >
-          {profile.name}<span className="text-signal">.</span>
+          {profile.name}
         </button>
 
-        <nav aria-label="Primary" className="order-last -mx-1 flex basis-full gap-5 overflow-x-auto pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:order-none md:basis-auto md:overflow-visible md:pt-0">
+        <nav
+          aria-label="Primary"
+          className="order-last -mx-1 flex basis-full gap-6 overflow-x-auto pt-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:order-none md:basis-auto md:overflow-visible md:pt-0"
+        >
           {links.map((l) => (
             <button
               key={l.id}
               type="button"
               onClick={() => document.getElementById(l.id)?.scrollIntoView({ behavior: 'smooth' })}
-              className={`relative whitespace-nowrap px-1 py-1 text-sm transition-colors ${active === l.id ? 'text-ink' : 'text-mute hover:text-ink'}`}
+              className={`relative whitespace-nowrap px-1 py-1 text-sm transition-colors ${active === l.id ? 'text-ink font-medium' : 'text-mute hover:text-ink'}`}
             >
               {l.label}
               {active === l.id && (
-                <motion.span layoutId="nav-underline" className="absolute inset-x-1 -bottom-0.5 h-px bg-signal" />
+                <motion.span layoutId="nav-underline" className="absolute inset-x-1 -bottom-0.5 h-[2px] bg-signal" />
               )}
             </button>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <a
             href={profile.github}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub profile"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rule text-ink transition-colors hover:border-ink"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rule text-ink transition-colors hover:border-ink hover:text-signal"
           >
             <Github size={16} />
           </a>
@@ -105,10 +108,10 @@ export function Reveal({ children, delay = 0, className = '' }: { children: Reac
   return (
     <motion.div
       className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
+      initial={reduce ? false : { opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, margin: '-20px' }}
+      transition={{ duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>

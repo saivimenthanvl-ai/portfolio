@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Masthead } from './components/Layout';
 import { Intro } from './components/Intro';
 import { Work } from './components/Work';
 import { Contact, Education, Experience, Skills } from './components/Record';
-import { DemoPage } from './components/DemoPage';
+
+const DemoPage = lazy(() => import('./components/DemoPage').then((m) => ({ default: m.DemoPage })));
 
 export default function App() {
   const [isDemo, setIsDemo] = useState(false);
@@ -21,7 +22,11 @@ export default function App() {
   }, []);
 
   if (isDemo) {
-    return <DemoPage />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+        <DemoPage />
+      </Suspense>
+    );
   }
 
   return (
