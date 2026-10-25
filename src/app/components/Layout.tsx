@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { animate, motion, useInView, useReducedMotion, useScroll, useSpring } from 'motion/react';
+import { animate, motion, useInView, useReducedMotion } from 'motion/react';
 import { Github, Moon, Sun } from 'lucide-react';
 import { profile } from '../data';
 
@@ -64,10 +64,10 @@ export function Masthead() {
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="font-mono text-sm font-medium tracking-tight text-ink"
         >
-          SVL<span className="text-signal">.</span>
+          {profile.name}<span className="text-signal">.</span>
         </button>
 
-        <nav aria-label="Primary" className="order-last -mx-1 flex basis-full gap-5 overflow-x-auto pt-2 md:order-none md:basis-auto md:pt-0">
+        <nav aria-label="Primary" className="order-last -mx-1 flex basis-full gap-5 overflow-x-auto pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:order-none md:basis-auto md:overflow-visible md:pt-0">
           {links.map((l) => (
             <button
               key={l.id}
@@ -98,12 +98,6 @@ export function Masthead() {
       </div>
     </header>
   );
-}
-
-export function ScrollBar() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 30 });
-  return <motion.div aria-hidden style={{ scaleX }} className="fixed inset-x-0 top-0 z-[60] h-0.5 origin-left bg-signal" />;
 }
 
 export function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {

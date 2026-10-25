@@ -24,20 +24,19 @@ function write(key: string, value: string | null) {
   }
 }
 
-function crop(file: File, width = 800, height = 1000): Promise<string> {
+/** Keeps the whole image (no crop); only downsizes so the longest side is at most `max` px. */
+function fit(file: File, max = 1200): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const scale = Math.max(width / img.width, height / img.height);
-      const w = width / scale;
-      const h = height / scale;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d')!.drawImage(img, (img.width - w) / 2, (img.height - h) / 2, w, h, 0, 0, width, height);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', 0.86));
+      resolve(canvas.toDataURL('image/jpeg', 0.88));
     };
     img.onerror = reject;
     img.src = url;
@@ -67,21 +66,21 @@ function Portrait({ photo, setPhoto }: { photo: string | null; setPhoto: (p: str
   const input = useRef<HTMLInputElement>(null);
   const onFile = async (file?: File) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const data = await crop(file);
+    const data = await fit(file);
     write(PHOTO_KEY, data);
     setPhoto(data);
   };
 
   return (
-    <figure className="w-full max-w-sm lg:ml-auto">
+    <figure className="w-full max-w-md lg:ml-auto">
       <button
         type="button"
         aria-label={photo ? 'Change profile photo' : 'Upload profile photo'}
         onClick={() => input.current?.click()}
-        className="group relative block aspect-[4/5] w-full overflow-hidden border border-dashed border-rule bg-wash transition-colors hover:border-ink"
+        className={`group relative block w-full overflow-hidden transition-colors ${photo ? '' : 'aspect-[4/5] border border-dashed border-rule bg-wash hover:border-ink'}`}
       >
         {photo ? (
-          <img src={photo} alt={profile.name} className="h-full w-full object-cover" />
+          <img src={photo} alt={profile.name} className="block h-auto w-full" />
         ) : (
           <span className="flex h-full flex-col items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-mute group-hover:text-ink">
             <Camera size={22} strokeWidth={1.5} />
