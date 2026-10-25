@@ -31,14 +31,12 @@ To preview the build:
 npm run preview
 
 
-## Environment Variables
+## Profile Photo (Owner Mode)
 
-To enable server-side profile photo storage with Vercel Blob and secure owner upload/deletion controls, configure the following environment variables in your Vercel Project Settings (`Settings -> Environment Variables`):
-
-| Variable | Description |
-|---|---|
-| `BLOB_READ_WRITE_TOKEN` | Created automatically when you attach a Vercel Blob store to your project in the Vercel dashboard (`Storage -> Connect Store -> Blob`). Grants read/write access to store the profile photo publicly. |
-| `OWNER_PASSPHRASE` | A secret password of your choice used to authenticate photo uploads and deletions at `/api/photo`. Access the site with `?owner=1` to open the passphrase unlock prompt. |
+The profile photo is stored strictly in your local browser (`localStorage`) and is never sent to any server, GitHub, or cloud storage:
+- Open the site with `?owner=1` to activate owner mode (`?owner=0` turns it off).
+- Only in owner mode can you upload, change, or remove the profile photo.
+- The photo works only in the browser where it was uploaded; visitors on other devices will not see it, and clearing browser site data removes it.
 
 ## Deployment
 

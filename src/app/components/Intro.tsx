@@ -1,20 +1,38 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowDownRight, Camera, Github, Linkedin, Lock, Mail } from 'lucide-react';
+import { ArrowDownRight, Camera, Github, Linkedin, Mail } from 'lucide-react';
 import { profile, stats } from '../data';
 import { CountUp, Reveal } from './Layout';
 
-const OWNER_UNLOCKED_SESSION_KEY = 'portfolio-owner-unlocked-token';
+const PHOTO_KEY = 'portfolio-owner-photo';
+const OWNER_KEY = 'portfolio-owner';
 
-interface StoredPhoto {
-  url: string;
-  width?: number;
-  height?: number;
-  pathname?: string;
+function readStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
-/** Resize image so longest side is at most 1600 px and compress to under 400 KB */
-function processImageFile(file: File, maxDim = 1600): Promise<{ dataUrl: string; width: number; height: number; mimeType: string }> {
+function writeStorage(key: string, value: string | null): boolean {
+  try {
+    if (value === null) {
+      localStorage.removeItem(key);
+      return true;
+    }
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    console.error('LocalStorage write error:', e);
+    return false;
+  }
+}
+
+/**
+ * Downscale image so longest side is at most 1200 px, JPEG quality ~0.88, no cropping.
+ */
+function downscaleImage(file: File, maxDim = 1200): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -36,18 +54,11 @@ function processImageFile(file: File, maxDim = 1600): Promise<{ dataUrl: string;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          reject(new Error('Canvas context not available'));
+          resolve(reader.result as string);
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        // Start with 0.85 quality; compress to < 400 KB if needed
-        let quality = 0.85;
-        let dataUrl = canvas.toDataURL('image/jpeg', quality);
-        while (dataUrl.length > 400 * 1024 * 1.33 && quality > 0.4) {
-          quality -= 0.1;
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
-        }
-        resolve({ dataUrl, width, height, mimeType: 'image/jpeg' });
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
       };
       img.onerror = reject;
       img.src = reader.result as string;
@@ -57,211 +68,71 @@ function processImageFile(file: File, maxDim = 1600): Promise<{ dataUrl: string;
   });
 }
 
-export function Intro() {
-  const [photo, setPhoto] = useState<StoredPhoto | null>(null);
-  const [isPhotoLoaded, setIsPhotoLoaded] = useState(false);
-  const [showUnlockPrompt, setShowUnlockPrompt] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [passphraseInput, setPassphraseInput] = useState('');
-  const [passphraseError, setPassphraseError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+function useOwnerPhoto() {
+  const [isOwner, setIsOwner] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 1. Check for owner flag (?owner=1) to display unlock prompt, and check session token
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('owner') === '1') {
-      setShowUnlockPrompt(true);
+    const flag = params.get('owner');
+    if (flag === '1') {
+      writeStorage(OWNER_KEY, '1');
+    } else if (flag === '0') {
+      writeStorage(OWNER_KEY, null);
     }
-    const sessionToken = sessionStorage.getItem(OWNER_UNLOCKED_SESSION_KEY);
-    if (sessionToken) {
-      setIsUnlocked(true);
+
+    const ownerActive = readStorage(OWNER_KEY) === '1';
+    setIsOwner(ownerActive);
+    if (ownerActive) {
+      setPhoto(readStorage(PHOTO_KEY));
+    } else {
+      setPhoto(null);
     }
   }, []);
 
-  // 2. Public read: fetch active photo from /api/photo
-  useEffect(() => {
-    let isMounted = true;
-    fetch('/api/photo')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load photo');
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        if (data && data.photo && data.photo.url) {
-          setPhoto(data.photo);
-        } else {
-          setPhoto(null);
-        }
-        setIsPhotoLoaded(true);
-      })
-      .catch((err) => {
-        console.warn('Could not fetch server photo:', err);
-        if (isMounted) {
-          setPhoto(null);
-          setIsPhotoLoaded(true);
-        }
-      });
+  return { isOwner, photo, setPhoto };
+}
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+export function Intro() {
+  const { isOwner, photo, setPhoto } = useOwnerPhoto();
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUnlock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPassphraseError(null);
-    if (!passphraseInput.trim()) {
-      setPassphraseError('Please enter passphrase');
-      return;
-    }
-
-    try {
-      // Test passphrase against DELETE with dry-run or verify by header
-      const res = await fetch('/api/photo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-owner-passphrase': passphraseInput.trim(),
-        },
-        body: JSON.stringify({ verifyOnly: true }),
-      });
-
-      if (res.status === 401) {
-        setPassphraseError('Invalid owner passphrase');
-        return;
-      }
-
-      sessionStorage.setItem(OWNER_UNLOCKED_SESSION_KEY, passphraseInput.trim());
-      setIsUnlocked(true);
-      setShowUnlockPrompt(false);
-    } catch {
-      // In local preview/test environments where serverless isn't running, accept unlock if non-empty
-      sessionStorage.setItem(OWNER_UNLOCKED_SESSION_KEY, passphraseInput.trim());
-      setIsUnlocked(true);
-      setShowUnlockPrompt(false);
-    }
-  };
-
-  const handleUpload = async (file?: File) => {
+  const handleFileChange = async (file?: File) => {
     if (!file) return;
-    setUploadError(null);
+    setStorageError(null);
 
     const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      setUploadError('Only JPEG, PNG, or WebP files are supported.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Image file must be under 5 MB.');
+      setStorageError('Only JPEG, PNG, or WebP images are supported.');
       return;
     }
 
-    setIsUploading(true);
     try {
-      const { dataUrl, width, height, mimeType } = await processImageFile(file);
-      const passphrase = sessionStorage.getItem(OWNER_UNLOCKED_SESSION_KEY) || passphraseInput;
-
-      const res = await fetch('/api/photo', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-owner-passphrase': passphrase,
-        },
-        body: JSON.stringify({ dataUrl, width, height, contentType: mimeType }),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Upload failed');
+      const dataUrl = await downscaleImage(file, 1200);
+      const ok = writeStorage(PHOTO_KEY, dataUrl);
+      if (!ok) {
+        setStorageError('Storage is full or blocked in this browser. Could not save photo.');
+        return;
       }
-
-      const resData = await res.json();
-      setPhoto(resData.photo);
+      setPhoto(dataUrl);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Upload failed';
-      setUploadError(msg);
-    } finally {
-      setIsUploading(false);
+      const msg = err instanceof Error ? err.message : 'Failed to process image';
+      setStorageError(msg);
     }
   };
 
-  const handleRemove = async () => {
-    if (!confirm('Remove profile photo for all visitors?')) return;
-    const passphrase = sessionStorage.getItem(OWNER_UNLOCKED_SESSION_KEY) || passphraseInput;
-    try {
-      const res = await fetch('/api/photo', {
-        method: 'DELETE',
-        headers: {
-          'x-owner-passphrase': passphrase,
-        },
-      });
-      if (res.ok) {
-        setPhoto(null);
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        alert(errJson.error || 'Failed to delete photo');
-      }
-    } catch {
-      setPhoto(null);
-    }
+  const handleRemove = () => {
+    writeStorage(PHOTO_KEY, null);
+    setPhoto(null);
+    setStorageError(null);
   };
-
-  // Determine if photo slot should be displayed
-  // For visitors: only if photo exists (server-side public read)
-  // For unlocked owner: always visible (showing photo or upload placeholder)
-  const shouldShowPhotoSlot = Boolean(photo) || isUnlocked;
 
   return (
     <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-between px-5 pb-16 pt-28 md:pt-36 md:px-8">
-      {/* Owner Unlock Dialog Modal */}
-      {showUnlockPrompt && !isUnlocked && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-paper/80 backdrop-blur-sm p-4">
-          <form
-            onSubmit={handleUnlock}
-            className="w-full max-w-sm border border-rule bg-paper p-6 shadow-2xl space-y-4"
-          >
-            <div className="flex items-center gap-2 text-ink">
-              <Lock size={16} className="text-signal" />
-              <h3 className="font-mono text-xs uppercase tracking-wider font-medium">Owner Authentication</h3>
-            </div>
-            <p className="text-xs text-mute leading-relaxed">
-              Enter owner passphrase to manage the publicly stored profile photo.
-            </p>
-            <input
-              type="password"
-              placeholder="Passphrase"
-              value={passphraseInput}
-              onChange={(e) => setPassphraseInput(e.target.value)}
-              className="w-full border border-rule bg-wash px-3 py-2 text-sm text-ink placeholder:text-mute focus:outline-none focus:border-ink"
-              autoFocus
-            />
-            {passphraseError && <p className="text-xs text-signal font-mono">{passphraseError}</p>}
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowUnlockPrompt(false)}
-                className="px-3 py-1.5 text-xs text-mute hover:text-ink font-mono"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-1.5 text-xs bg-ink text-paper font-mono hover:bg-signal transition-colors"
-              >
-                Unlock
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       <div className="grid items-end gap-12 lg:grid-cols-12">
-        {/* Name and About block */}
-        <div className={shouldShowPhotoSlot ? 'lg:col-span-8' : 'lg:col-span-12'}>
+        {/* Name and About block: spans 8 columns if owner mode, full 12 columns for visitors */}
+        <div className={isOwner ? 'lg:col-span-8' : 'lg:col-span-12'}>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -271,7 +142,7 @@ export function Intro() {
             {profile.role} — {profile.location}
           </motion.p>
 
-          <h1 className="text-[clamp(3rem,9vw,8.5rem)] font-medium leading-[0.92] tracking-[-0.045em] text-ink">
+          <h1 className="text-[clamp(2.75rem,7.5vw,7rem)] font-medium leading-[0.92] tracking-[-0.045em] text-ink">
             {profile.name.split(' ').map((w, i) => (
               <Fragment key={i}>
                 <span className="inline-block overflow-hidden pb-3 align-bottom">
@@ -312,69 +183,55 @@ export function Intro() {
           </Reveal>
         </div>
 
-        {/* Profile photo column: beside name on desktop, full-width below on mobile */}
-        {shouldShowPhotoSlot && (
+        {/* Profile photo: only visible in owner mode (?owner=1) */}
+        {isOwner && (
           <Reveal delay={0.3} className="w-full lg:col-span-4 order-last lg:order-none mt-8 lg:mt-0">
             <figure className="w-full max-w-sm lg:ml-auto">
-              {isUnlocked ? (
-                <>
-                  <button
-                    type="button"
-                    aria-label={photo ? 'Change profile photo' : 'Upload photo'}
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className={`group relative block w-full overflow-hidden transition-colors ${photo ? '' : 'aspect-[4/5] border border-dashed border-rule bg-wash hover:border-ink'}`}
-                  >
-                    {photo ? (
-                      <img
-                        src={photo.url}
-                        alt={profile.name}
-                        width={photo.width}
-                        height={photo.height}
-                        style={photo.width && photo.height ? { aspectRatio: `${photo.width} / ${photo.height}` } : undefined}
-                        className="block h-auto w-full max-h-[500px] object-contain border border-rule"
-                      />
-                    ) : (
-                      <span className="flex aspect-[4/5] h-full w-full flex-col items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-mute group-hover:text-ink">
-                        <Camera size={22} strokeWidth={1.5} />
-                        {isUploading ? 'Uploading...' : 'Upload photo'}
-                      </span>
-                    )}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    data-testid="photo-input"
-                    onChange={(e) => handleUpload(e.target.files?.[0])}
-                  />
-                  {uploadError && <p className="mt-2 text-xs text-signal font-mono">{uploadError}</p>}
-                  <figcaption className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-widest text-mute">
-                    <span>Owner controls</span>
-                    {photo && (
-                      <button
-                        type="button"
-                        onClick={handleRemove}
-                        className="underline underline-offset-4 hover:text-ink"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </figcaption>
-                </>
-              ) : (
-                photo && (
+              <button
+                type="button"
+                aria-label={photo ? 'Change profile photo' : 'Upload photo'}
+                onClick={() => fileInputRef.current?.click()}
+                className={`group relative block w-full overflow-hidden transition-colors ${photo ? '' : 'aspect-[4/5] border border-dashed border-rule bg-wash hover:border-ink'}`}
+              >
+                {photo ? (
                   <img
-                    src={photo.url}
+                    src={photo}
                     alt={profile.name}
-                    width={photo.width}
-                    height={photo.height}
-                    style={photo.width && photo.height ? { aspectRatio: `${photo.width} / ${photo.height}` } : undefined}
                     className="block h-auto w-full max-h-[500px] object-contain border border-rule"
                   />
-                )
-              )}
+                ) : (
+                  <span className="flex aspect-[4/5] h-full w-full flex-col items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-mute group-hover:text-ink">
+                    <Camera size={22} strokeWidth={1.5} />
+                    Upload photo
+                  </span>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                data-testid="photo-input"
+                onChange={(e) => handleFileChange(e.target.files?.[0])}
+              />
+              {storageError && <p className="mt-2 text-xs text-signal font-mono">{storageError}</p>}
+              <figcaption className="mt-3 flex flex-col gap-1.5 font-mono text-[11px] text-mute">
+                <div className="flex items-center justify-between uppercase tracking-widest">
+                  <span>Owner mode</span>
+                  {photo && (
+                    <button
+                      type="button"
+                      onClick={handleRemove}
+                      className="underline underline-offset-4 hover:text-ink"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-mute/80 normal-case">
+                  Stored only in this browser. Visitors cannot see it.
+                </p>
+              </figcaption>
             </figure>
           </Reveal>
         )}
@@ -396,4 +253,3 @@ export function Intro() {
     </section>
   );
 }
-

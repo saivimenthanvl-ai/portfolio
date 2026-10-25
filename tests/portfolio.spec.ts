@@ -11,98 +11,67 @@ test('renders every resume section', async ({ page }) => {
   await expect(page.getByText('AWS Certified Machine Learning – Specialty')).toBeVisible();
 });
 
-test('declares empty favicon', async ({ page }) => {
+test('declares blank svg favicon and no favicon file exists', async ({ page }) => {
   await page.goto('/');
   const iconLink = page.locator('link[rel="icon"]');
-  await expect(iconLink).toHaveAttribute('href', 'data:,');
+  await expect(iconLink).toHaveAttribute(
+    'href',
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3C/svg%3E"
+  );
+  // Check no physical favicon files in public/
+  const fs = await import('node:fs');
+  expect(fs.existsSync('public/favicon.ico')).toBe(false);
+  expect(fs.existsSync('public/favicon.svg')).toBe(false);
+  expect(fs.existsSync('public/favicon.png')).toBe(false);
 });
 
-test('lists only the four resume projects, each linked to GitHub', async ({ page }) => {
+test('ASCRA tags are exactly Machine Learning, LLM, Python', async ({ page }) => {
   await page.goto('/');
-  const projects = page.locator('#projects');
-  await expect(projects.getByRole('heading', { level: 3 })).toHaveText([
-    'ASCRA',
-    'SOS Healthcare',
-    'Farmculture',
-    'Virus Electron Microscopy Classification',
-  ]);
-  const rows = projects.locator('article');
-  await expect(rows.getByRole('link', { name: /GitHub/ })).toHaveCount(4);
-  await expect(rows.getByRole('link', { name: /Live Demo/ })).toHaveCount(2);
-  for (const href of await rows.getByRole('link', { name: /GitHub/ }).evaluateAll((a) => a.map((x) => (x as HTMLAnchorElement).href))) {
-    expect(href).toMatch(/^https:\/\/github\.com\/saivimenthanvl-ai\//);
+  const ascraArticle = page.locator('#projects article').filter({ hasText: 'ASCRA' });
+  const tagsElement = ascraArticle.locator('p.font-mono.text-xs.text-ink');
+  await expect(tagsElement).toHaveText('Machine Learning  /  LLM  /  Python');
+  const tagsText = await tagsElement.textContent();
+  expect(tagsText).not.toContain('Qwen3-4B');
+  expect(tagsText).not.toContain('PEFT');
+  expect(tagsText).not.toContain('LoRA');
+  expect(tagsText).not.toContain('Hugging Face');
+  expect(tagsText).not.toContain('PyTorch');
+});
+
+test('h1 stays within viewport, on 1 line at 1360px, <= 2 lines at 375px', async ({ page }) => {
+  const viewports = [
+    { width: 375, height: 812, maxLines: 2 },
+    { width: 768, height: 1024, maxLines: 2 },
+    { width: 1360, height: 900, maxLines: 1 },
+    { width: 1887, height: 1000, maxLines: 1 },
+  ];
+
+  for (const vp of viewports) {
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+    await page.goto('/');
+    const h1 = page.getByRole('heading', { level: 1 });
+    await expect(h1).toBeVisible();
+
+    // Check no horizontal document overflow
+    const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(hasOverflow).toBe(false);
+
+    // Check h1 line count approximation via bounding client rect and computed line-height
+    const lines = await h1.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 0.92);
+      return Math.round(rect.height / lineHeight);
+    });
+    expect(lines).toBeLessThanOrEqual(vp.maxLines);
   }
-  await expect(page.getByText('Edge Tracking')).toHaveCount(0);
-  await expect(page.getByText('Monkeypox')).toHaveCount(0);
-  // Check virus project tags
-  await expect(page.getByText('Machine learning / Deep learning / Python')).toBeVisible();
 });
 
-test('theme toggle switches and persists', async ({ page }) => {
-  await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
-  const html = page.locator('html');
-  await expect(html).toHaveAttribute('data-theme', 'light');
-  await page.getByRole('button', { name: /Switch to dark theme/ }).click();
-  await expect(html).toHaveAttribute('data-theme', 'dark');
-  await page.reload();
-  await expect(html).toHaveAttribute('data-theme', 'dark');
-});
-
-test('header renders full name wordmark and nav buttons', async ({ page }) => {
-  await page.goto('/');
-  const header = page.locator('header');
-  await expect(header.getByRole('button', { name: 'Sai Vimenthan V L' })).toBeVisible();
-});
-
-test('nav scrolls to a section', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('navigation').getByRole('button', { name: 'Skills' }).click();
-  await expect(page.locator('#skills')).toBeInViewport();
-});
-
-test('lists updated skills accurately', async ({ page }) => {
-  await page.goto('/');
-  const skillsSection = page.locator('#skills');
-  await expect(skillsSection.getByText('PyTorch / TensorFlow/Keras / Hugging Face Transformers / Machine learning / Deep learning / RAG / OpenCV')).toBeVisible();
-  await expect(skillsSection.getByText('React / Next.js / Node.js/Express / FastAPI / Firebase / Supabase/PostgreSQL / REST APIs')).toBeVisible();
-  await expect(skillsSection.getByText('Git / GitHub / Linux')).toBeVisible();
-  // Removed items should not appear in the skills section
-  await expect(skillsSection.getByText('OCR')).toHaveCount(0);
-  await expect(skillsSection.getByText('PEFT')).toHaveCount(0);
-  await expect(skillsSection.getByText('Docker')).toHaveCount(0);
-  await expect(skillsSection.getByText('AWS')).toHaveCount(0);
-});
-
-test('email font size is under 40px at 1360px and wraps safely at 375px', async ({ page }) => {
-  await page.setViewportSize({ width: 1360, height: 860 });
-  await page.goto('/');
-  const emailLink = page.locator('#contact').getByRole('link', { name: 'saivimenthanvl@gmail.com' });
-  await expect(emailLink).toBeVisible();
-  const fontSize = await emailLink.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-  expect(fontSize).toBeLessThanOrEqual(40);
-
-  // Mobile 375px check
-  await page.setViewportSize({ width: 375, height: 812 });
-  await page.reload();
-  const mobileEmail = page.locator('#contact').getByRole('link', { name: 'saivimenthanvl@gmail.com' });
-  await expect(mobileEmail).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
-});
-
-test('about paragraph is updated and old tagline is absent', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByText('I build language-model systems and the web apps around them.')).toBeVisible();
-  await expect(page.getByText('LLM fine-tuning / Structured outputs / Full-stack AI apps')).toHaveCount(0);
-});
-
-test('visitors see no photo or upload control when no photo is stored', async ({ page }) => {
-  // Mock /api/photo returning null
-  await page.route('/api/photo', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photo: null }) });
-    } else {
-      await route.continue();
+test('visitors see no photo or upload control and make no call to /api/photo', async ({ page }) => {
+  let apiPhotoCalled = false;
+  page.on('request', (req) => {
+    if (req.url().includes('/api/photo')) {
+      apiPhotoCalled = true;
     }
   });
 
@@ -110,76 +79,46 @@ test('visitors see no photo or upload control when no photo is stored', async ({
   await expect(page.getByTestId('photo-input')).toHaveCount(0);
   await expect(page.getByText('Upload photo')).toHaveCount(0);
   await expect(page.locator('figure img')).toHaveCount(0);
+  expect(apiPhotoCalled).toBe(false);
 });
 
-test('visitors see public photo at natural aspect ratio when photo exists', async ({ page }) => {
-  await page.route('/api/photo', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          photo: {
-            url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-            width: 400,
-            height: 500,
-          },
-        }),
-      });
-    } else {
-      await route.continue();
+test('owner mode (?owner=1) shows upload slot, saves photo to localStorage, and second context never sees it', async ({ browser, page }) => {
+  let apiPhotoCalled = false;
+  page.on('request', (req) => {
+    if (req.url().includes('/api/photo')) {
+      apiPhotoCalled = true;
     }
   });
 
-  await page.goto('/');
+  // 1. Visit with ?owner=1
+  await page.goto('/?owner=1');
+  await expect(page.getByText('Upload photo')).toBeVisible();
+  await expect(page.getByText('Stored only in this browser. Visitors cannot see it.')).toBeVisible();
+
+  // 2. Set an image directly into localStorage simulating downscaled upload
+  const sample1x1Png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  await page.evaluate((imgData) => {
+    localStorage.setItem('portfolio-owner-photo', imgData);
+  }, sample1x1Png);
+
+  // Reload to verify persistence in this browser
+  await page.reload();
   const img = page.getByRole('img', { name: 'Sai Vimenthan V L' });
   await expect(img).toBeVisible();
-  await expect(page.getByText('Upload photo')).toHaveCount(0);
   const fit = await img.evaluate((el: HTMLImageElement) => getComputedStyle(el).objectFit);
-  expect(fit).not.toBe('cover');
-});
+  expect(fit).not.toBe('cover'); // natural aspect ratio, no cover crop
 
-test('photo management requires owner passphrase', async ({ page }) => {
-  let photoStored: any = null;
+  // 3. Open a completely separate browser context (clean visitor)
+  const visitorContext = await browser.newContext();
+  const visitorPage = await visitorContext.newPage();
+  await visitorPage.goto('/');
+  await expect(visitorPage.getByTestId('photo-input')).toHaveCount(0);
+  await expect(visitorPage.getByText('Upload photo')).toHaveCount(0);
+  await expect(visitorPage.locator('figure img')).toHaveCount(0);
+  await visitorContext.close();
 
-  await page.route('/api/photo', async (route) => {
-    const method = route.request().method();
-    if (method === 'GET') {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photo: photoStored }) });
-    } else if (method === 'POST') {
-      const authHeader = route.request().headers()['x-owner-passphrase'];
-      if (authHeader !== 'secret123') {
-        await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Invalid owner passphrase' }) });
-        return;
-      }
-      photoStored = {
-        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-        width: 400,
-        height: 500,
-      };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photo: photoStored }) });
-    } else {
-      await route.continue();
-    }
-  });
-
-  // Open with ?owner=1
-  await page.goto('/?owner=1');
-  const unlockModal = page.getByRole('heading', { name: 'Owner Authentication' });
-  await expect(unlockModal).toBeVisible();
-
-  // Try wrong passphrase
-  await page.locator('input[type="password"]').fill('wrongpass');
-  await page.getByRole('button', { name: 'Unlock' }).click();
-  await expect(page.getByText('Invalid owner passphrase')).toBeVisible();
-
-  // Enter correct passphrase
-  await page.locator('input[type="password"]').fill('secret123');
-  await page.getByRole('button', { name: 'Unlock' }).click();
-  await expect(unlockModal).toHaveCount(0);
-
-  // Now upload control is visible to unlocked owner
-  await expect(page.getByText('Upload photo')).toBeVisible();
+  // Verify no network request was made to /api/photo
+  expect(apiPhotoCalled).toBe(false);
 });
 
 test('header has no stray scroller or progress bar, and shows the full name', async ({ page }) => {

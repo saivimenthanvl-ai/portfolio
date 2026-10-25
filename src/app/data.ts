@@ -68,7 +68,7 @@ export const projects: Project[] = [
       'Prepared 82,400 dataset records (80,000 train / 1,200 validation / 1,200 test) across synthetic incidents, DataCo, GS1 EPCIS, M5 pricing, and tool-safety tasks.',
       'PEFT LoRA (rank 16), 4-bit NF4 QLoRA / bf16 LoRA, answer-only loss masking; baseline reached 100% valid JSON (200/200) and 62.5% (25/40) on unseen synthetic formats.',
     ],
-    tags: ['Qwen3-4B', 'PEFT', 'LoRA / QLoRA', 'Hugging Face', 'PyTorch'],
+    tags: ['Machine Learning', 'LLM', 'Python'],
     github: `${GH}/ASCRA`,
   },
   {
