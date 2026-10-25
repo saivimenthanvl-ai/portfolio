@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowDownRight, Camera, Github, Linkedin, Mail } from 'lucide-react';
+import defaultPhoto from '../../imports/profile-photo.jpg';
 import { profile, stats } from '../data';
 import { CountUp, Reveal } from './Layout';
 
@@ -80,11 +81,8 @@ function useLocalPhoto() {
   useEffect(() => {
     const local = isLocalhost();
     setIsLocal(local);
-    if (local) {
-      setPhoto(readStorage(PHOTO_KEY));
-    } else {
-      setPhoto(null);
-    }
+    const stored = readStorage(PHOTO_KEY);
+    setPhoto(stored || defaultPhoto);
   }, []);
 
   return { isLocal, photo, setPhoto };
@@ -121,20 +119,20 @@ export function Intro() {
 
   const handleRemove = () => {
     writeStorage(PHOTO_KEY, null);
-    setPhoto(null);
+    setPhoto(defaultPhoto);
     setStorageError(null);
   };
 
   return (
-    <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-between px-5 pb-16 pt-28 md:pt-36 md:px-8">
-      <div className="grid items-end gap-12 lg:grid-cols-12">
-        {/* Name and About block: spans 8 columns on desktop if local screen, full 12 columns for public visitors */}
-        <div className={isLocal ? 'lg:col-span-8' : 'lg:col-span-12'}>
+    <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-between px-5 pb-12 pt-20 md:pt-24 md:px-8">
+      <div className="grid items-end gap-8 md:gap-10 lg:grid-cols-12">
+        {/* Name and About block: spans 8 columns on desktop, photo spans 4 columns */}
+        <div className="lg:col-span-8">
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}
-            className="mb-6 font-mono text-xs uppercase tracking-[0.22em] text-mute"
+            className="mb-4 font-mono text-xs uppercase tracking-[0.22em] text-mute"
           >
             {profile.role} — {profile.location}
           </motion.p>
@@ -142,7 +140,7 @@ export function Intro() {
           <h1 className="text-[clamp(2.25rem,5.5vw,5rem)] font-medium leading-[1] tracking-[-0.035em] text-ink">
             {profile.name.split(' ').map((w, i) => (
               <Fragment key={i}>
-                <span className="inline-block overflow-hidden pb-3 align-bottom">
+                <span className="inline-block overflow-hidden pb-2 align-bottom">
                   <motion.span
                     className="inline-block"
                     initial={{ y: '105%' }}
@@ -156,11 +154,11 @@ export function Intro() {
             ))}
           </h1>
 
-          <Reveal delay={0.2} className="mt-8 max-w-2xl">
-            <p className="text-lg leading-8 text-mute">{profile.summary}</p>
+          <Reveal delay={0.2} className="mt-5 max-w-2xl">
+            <p className="text-lg leading-relaxed text-mute">{profile.summary}</p>
           </Reveal>
 
-          <Reveal delay={0.6} className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
+          <Reveal delay={0.6} className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
             <button
               type="button"
               onClick={() => document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })}
@@ -180,18 +178,18 @@ export function Intro() {
           </Reveal>
         </div>
 
-        {/* Profile photo: only visible on local screen (localhost / 127.0.0.1 / [::1]) */}
-        {isLocal && (
-          <Reveal delay={0.3} className="w-full lg:col-span-4 order-last lg:order-none mt-8 lg:mt-0">
-            <figure className="w-full max-w-sm lg:ml-auto">
-              {photo ? (
-                <div>
-                  <img
-                    src={photo}
-                    alt={profile.name}
-                    className="block h-auto w-full max-h-[500px] object-contain border border-rule"
-                  />
-                  <div className="mt-2.5 flex items-center justify-between font-mono text-[11px] text-mute">
+        {/* Profile photo: uploaded photo bundled for Vercel/GitHub */}
+        <Reveal delay={0.3} className="w-full lg:col-span-4 order-last lg:order-none mt-6 lg:mt-0">
+          <figure className="w-full max-w-xs md:max-w-sm lg:ml-auto">
+            {photo ? (
+              <div>
+                <img
+                  src={photo}
+                  alt={profile.name}
+                  className="block h-auto w-full max-h-[460px] object-contain border border-rule shadow-sm"
+                />
+                {isLocal && (
+                  <div className="mt-2 flex items-center justify-between font-mono text-[11px] text-mute">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -204,43 +202,47 @@ export function Intro() {
                       onClick={handleRemove}
                       className="underline underline-offset-4 hover:text-ink"
                     >
-                      Remove
+                      Reset
                     </button>
                   </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  aria-label="Upload the image"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="group relative flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 border border-dashed border-rule bg-wash text-mute transition-colors hover:border-ink hover:text-ink"
-                >
-                  <Camera size={22} strokeWidth={1.5} />
-                  <span className="font-mono text-xs uppercase tracking-[0.2em]">
-                    Upload the image
-                  </span>
-                </button>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                data-testid="photo-input"
-                onChange={(e) => handleFileChange(e.target.files?.[0])}
-              />
-              {storageError && <p className="mt-2 text-xs text-signal font-mono">{storageError}</p>}
-              <figcaption className="mt-2 text-[10px] font-mono text-mute">
-                Stored only in this browser.
-              </figcaption>
-            </figure>
-          </Reveal>
-        )}
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                aria-label="Upload the image"
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 border border-dashed border-rule bg-wash text-mute transition-colors hover:border-ink hover:text-ink"
+              >
+                <Camera size={22} strokeWidth={1.5} />
+                <span className="font-mono text-xs uppercase tracking-[0.2em]">
+                  Upload the image
+                </span>
+              </button>
+            )}
+            {isLocal && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  data-testid="photo-input"
+                  onChange={(e) => handleFileChange(e.target.files?.[0])}
+                />
+                {storageError && <p className="mt-2 text-xs text-signal font-mono">{storageError}</p>}
+                <figcaption className="mt-1.5 text-[10px] font-mono text-mute">
+                  Localhost preview
+                </figcaption>
+              </>
+            )}
+          </figure>
+        </Reveal>
       </div>
 
       {/* Stats ledger */}
-      <Reveal delay={0.7} className="mt-16">
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-8 border-t border-ink pt-6 md:grid-cols-4">
+      <Reveal delay={0.7} className="mt-10 md:mt-12">
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-6 border-t border-ink pt-5 md:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label}>
               <dt className="order-2 mt-1 text-xs text-mute">{s.label}</dt>

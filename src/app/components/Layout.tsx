@@ -58,18 +58,10 @@ export function Masthead() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-rule bg-paper/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-8 px-5 py-3.5 md:px-8">
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="font-medium tracking-tight text-ink transition-colors hover:text-signal"
-        >
-          {profile.name}
-        </button>
-
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-x-8 px-5 py-3 md:px-8">
         <nav
           aria-label="Primary"
-          className="order-last -mx-1 flex basis-full gap-6 overflow-x-auto pt-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:order-none md:basis-auto md:overflow-visible md:pt-0"
+          className="-mx-1 flex gap-6 overflow-x-auto py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible"
         >
           {links.map((l) => (
             <button

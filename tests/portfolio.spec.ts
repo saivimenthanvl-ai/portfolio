@@ -75,7 +75,7 @@ test('h1 stays within viewport, on 1 line from 1024px up, <= 2 lines at 375px, f
   expect(fontSize).toBeLessThanOrEqual(80);
 });
 
-test('on localhost the slot shows "Upload the image", saves photo, keeps natural aspect ratio, and survives reload', async ({ page }) => {
+test('on localhost the profile photo displays at natural aspect ratio with local controls', async ({ page }) => {
   let apiPhotoCalled = false;
   page.on('request', (req) => {
     if (req.url().includes('/api/photo')) {
@@ -85,36 +85,20 @@ test('on localhost the slot shows "Upload the image", saves photo, keeps natural
 
   // On localhost:4173 (standard test runner hostname)
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Upload the image' })).toBeVisible();
-  await expect(page.getByText('Upload the image')).toBeVisible();
-  await expect(page.getByText('Stored only in this browser.')).toBeVisible();
-
-  // Save an image directly into localStorage simulating downscaled upload
-  const sample1x1Png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-  await page.evaluate((imgData) => {
-    localStorage.setItem('portfolio-localhost-photo', imgData);
-  }, sample1x1Png);
-
-  // Reload to verify persistence in this browser
-  await page.reload();
   const img = page.getByRole('img', { name: 'Sai Vimenthan V L' });
   await expect(img).toBeVisible();
   const fit = await img.evaluate((el: HTMLImageElement) => getComputedStyle(el).objectFit);
   expect(fit).not.toBe('cover'); // natural aspect ratio, no cover crop
 
-  // Change and Remove controls are visible
+  // Change and Reset controls are visible on localhost
   await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
-
-  // Test Remove button
-  await page.getByRole('button', { name: 'Remove' }).click();
-  await expect(page.getByRole('button', { name: 'Upload the image' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reset' })).toBeVisible();
 
   // Verify no network request was made to /api/photo
   expect(apiPhotoCalled).toBe(false);
 });
 
-test('simulated non-local host shows no slot, no controls, and no photo', async ({ page }) => {
+test('simulated non-local host shows bundled photo, but no upload controls', async ({ page }) => {
   let apiPhotoCalled = false;
   page.on('request', (req) => {
     if (req.url().includes('/api/photo')) {
@@ -128,23 +112,29 @@ test('simulated non-local host shows no slot, no controls, and no photo', async 
   });
 
   await page.goto('/');
+  // Bundled photo is visible to visitors
+  await expect(page.getByRole('img', { name: 'Sai Vimenthan V L' })).toBeVisible();
+
+  // Localhost upload controls are not rendered for visitors
   await expect(page.getByTestId('photo-input')).toHaveCount(0);
   await expect(page.getByText('Upload the image')).toHaveCount(0);
-  await expect(page.getByText('Upload photo')).toHaveCount(0);
-  await expect(page.locator('figure img')).toHaveCount(0);
-  await expect(page.getByText('Stored only in this browser.')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Reset' })).toHaveCount(0);
 
   expect(apiPhotoCalled).toBe(false);
 });
 
-test('header has no stray scroller or progress bar, and shows the full name', async ({ page }) => {
+test('header has no stray scroller or progress bar, and no name logo text', async ({ page }) => {
   await page.setViewportSize({ width: 1360, height: 860 });
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Primary' });
   const overflow = await nav.evaluate((el) => ({ y: getComputedStyle(el).overflowY, x: getComputedStyle(el).overflowX }));
   expect(overflow).toEqual({ x: 'visible', y: 'visible' });
-  await expect(page.getByRole('banner').getByRole('button', { name: /Sai Vimenthan V L/ })).toBeVisible();
-  await expect(page.getByRole('banner').getByText('SVL')).toHaveCount(0);
+  // Name logo removed from header top bar
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Sai Vimenthan V L' })).toHaveCount(0);
+  // Nav links present
+  await expect(nav.getByRole('button', { name: 'Projects' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: 'Contact' })).toBeVisible();
 });
 
 test('demo route renders Spline 3D container or fallback poster and ContainerScroll', async ({ page }) => {
