@@ -31,12 +31,13 @@ To preview the build:
 npm run preview
 
 
-## Profile Photo (Owner Mode)
+## Profile Photo (Local Screen Only)
 
-The profile photo is stored strictly in your local browser (`localStorage`) and is never sent to any server, GitHub, or cloud storage:
-- Open the site with `?owner=1` to activate owner mode (`?owner=0` turns it off).
-- Only in owner mode can you upload, change, or remove the profile photo.
-- The photo works only in the browser where it was uploaded; visitors on other devices will not see it, and clearing browser site data removes it.
+The profile photo slot appears only on localhost (`localhost`, `127.0.0.1`, `[::1]`) for testing on your local machine:
+- The uploaded photo is downscaled and stored strictly in this browser's `localStorage`.
+- It is never uploaded or sent to Vercel, GitHub, Vercel Blob, or any server.
+- Visitors on the live site, public URLs, or other devices will never see the slot, controls, or photo.
+- Clearing site data or clicking "Remove" deletes it.
 
 ## Deployment
 

@@ -4,8 +4,13 @@ import { ArrowDownRight, Camera, Github, Linkedin, Mail } from 'lucide-react';
 import { profile, stats } from '../data';
 import { CountUp, Reveal } from './Layout';
 
-const PHOTO_KEY = 'portfolio-owner-photo';
-const OWNER_KEY = 'portfolio-owner';
+const PHOTO_KEY = 'portfolio-localhost-photo';
+
+function isLocalhost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = (window as any).__FORCE_HOSTNAME__ || window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+}
 
 function readStorage(key: string): string | null {
   try {
@@ -68,33 +73,25 @@ function downscaleImage(file: File, maxDim = 1200): Promise<string> {
   });
 }
 
-function useOwnerPhoto() {
-  const [isOwner, setIsOwner] = useState(false);
+function useLocalPhoto() {
+  const [isLocal, setIsLocal] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const flag = params.get('owner');
-    if (flag === '1') {
-      writeStorage(OWNER_KEY, '1');
-    } else if (flag === '0') {
-      writeStorage(OWNER_KEY, null);
-    }
-
-    const ownerActive = readStorage(OWNER_KEY) === '1';
-    setIsOwner(ownerActive);
-    if (ownerActive) {
+    const local = isLocalhost();
+    setIsLocal(local);
+    if (local) {
       setPhoto(readStorage(PHOTO_KEY));
     } else {
       setPhoto(null);
     }
   }, []);
 
-  return { isOwner, photo, setPhoto };
+  return { isLocal, photo, setPhoto };
 }
 
 export function Intro() {
-  const { isOwner, photo, setPhoto } = useOwnerPhoto();
+  const { isLocal, photo, setPhoto } = useLocalPhoto();
   const [storageError, setStorageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,8 +128,8 @@ export function Intro() {
   return (
     <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-between px-5 pb-16 pt-28 md:pt-36 md:px-8">
       <div className="grid items-end gap-12 lg:grid-cols-12">
-        {/* Name and About block: spans 8 columns if owner mode, full 12 columns for visitors */}
-        <div className={isOwner ? 'lg:col-span-8' : 'lg:col-span-12'}>
+        {/* Name and About block: spans 8 columns on desktop if local screen, full 12 columns for public visitors */}
+        <div className={isLocal ? 'lg:col-span-8' : 'lg:col-span-12'}>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -142,7 +139,7 @@ export function Intro() {
             {profile.role} — {profile.location}
           </motion.p>
 
-          <h1 className="text-[clamp(2.75rem,7.5vw,7rem)] font-medium leading-[0.92] tracking-[-0.045em] text-ink">
+          <h1 className="text-[clamp(2.25rem,5.5vw,5rem)] font-medium leading-[1] tracking-[-0.035em] text-ink">
             {profile.name.split(' ').map((w, i) => (
               <Fragment key={i}>
                 <span className="inline-block overflow-hidden pb-3 align-bottom">
@@ -183,29 +180,47 @@ export function Intro() {
           </Reveal>
         </div>
 
-        {/* Profile photo: only visible in owner mode (?owner=1) */}
-        {isOwner && (
+        {/* Profile photo: only visible on local screen (localhost / 127.0.0.1 / [::1]) */}
+        {isLocal && (
           <Reveal delay={0.3} className="w-full lg:col-span-4 order-last lg:order-none mt-8 lg:mt-0">
             <figure className="w-full max-w-sm lg:ml-auto">
-              <button
-                type="button"
-                aria-label={photo ? 'Change profile photo' : 'Upload photo'}
-                onClick={() => fileInputRef.current?.click()}
-                className={`group relative block w-full overflow-hidden transition-colors ${photo ? '' : 'aspect-[4/5] border border-dashed border-rule bg-wash hover:border-ink'}`}
-              >
-                {photo ? (
+              {photo ? (
+                <div>
                   <img
                     src={photo}
                     alt={profile.name}
                     className="block h-auto w-full max-h-[500px] object-contain border border-rule"
                   />
-                ) : (
-                  <span className="flex aspect-[4/5] h-full w-full flex-col items-center justify-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-mute group-hover:text-ink">
-                    <Camera size={22} strokeWidth={1.5} />
-                    Upload photo
+                  <div className="mt-2.5 flex items-center justify-between font-mono text-[11px] text-mute">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="underline underline-offset-4 hover:text-ink"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemove}
+                      className="underline underline-offset-4 hover:text-ink"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  aria-label="Upload the image"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group relative flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 border border-dashed border-rule bg-wash text-mute transition-colors hover:border-ink hover:text-ink"
+                >
+                  <Camera size={22} strokeWidth={1.5} />
+                  <span className="font-mono text-xs uppercase tracking-[0.2em]">
+                    Upload the image
                   </span>
-                )}
-              </button>
+                </button>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -215,22 +230,8 @@ export function Intro() {
                 onChange={(e) => handleFileChange(e.target.files?.[0])}
               />
               {storageError && <p className="mt-2 text-xs text-signal font-mono">{storageError}</p>}
-              <figcaption className="mt-3 flex flex-col gap-1.5 font-mono text-[11px] text-mute">
-                <div className="flex items-center justify-between uppercase tracking-widest">
-                  <span>Owner mode</span>
-                  {photo && (
-                    <button
-                      type="button"
-                      onClick={handleRemove}
-                      className="underline underline-offset-4 hover:text-ink"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <p className="text-[10px] text-mute/80 normal-case">
-                  Stored only in this browser. Visitors cannot see it.
-                </p>
+              <figcaption className="mt-2 text-[10px] font-mono text-mute">
+                Stored only in this browser.
               </figcaption>
             </figure>
           </Reveal>

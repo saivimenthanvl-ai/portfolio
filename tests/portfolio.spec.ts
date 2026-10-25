@@ -38,10 +38,11 @@ test('ASCRA tags are exactly Machine Learning, LLM, Python', async ({ page }) =>
   expect(tagsText).not.toContain('PyTorch');
 });
 
-test('h1 stays within viewport, on 1 line at 1360px, <= 2 lines at 375px', async ({ page }) => {
+test('h1 stays within viewport, on 1 line from 1024px up, <= 2 lines at 375px, font size <= 80px at 1360px', async ({ page }) => {
   const viewports = [
     { width: 375, height: 812, maxLines: 2 },
     { width: 768, height: 1024, maxLines: 2 },
+    { width: 1024, height: 900, maxLines: 1 },
     { width: 1360, height: 900, maxLines: 1 },
     { width: 1887, height: 1000, maxLines: 1 },
   ];
@@ -56,33 +57,25 @@ test('h1 stays within viewport, on 1 line at 1360px, <= 2 lines at 375px', async
     const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     expect(hasOverflow).toBe(false);
 
-    // Check h1 line count approximation via bounding client rect and computed line-height
+    // Check h1 line count approximation
     const lines = await h1.evaluate((el) => {
       const rect = el.getBoundingClientRect();
       const style = window.getComputedStyle(el);
-      const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 0.92);
+      const lineHeight = parseFloat(style.lineHeight) || (parseFloat(style.fontSize) * 1);
       return Math.round(rect.height / lineHeight);
     });
     expect(lines).toBeLessThanOrEqual(vp.maxLines);
   }
-});
 
-test('visitors see no photo or upload control and make no call to /api/photo', async ({ page }) => {
-  let apiPhotoCalled = false;
-  page.on('request', (req) => {
-    if (req.url().includes('/api/photo')) {
-      apiPhotoCalled = true;
-    }
-  });
-
+  // Check font size at 1360px is <= 80px
+  await page.setViewportSize({ width: 1360, height: 900 });
   await page.goto('/');
-  await expect(page.getByTestId('photo-input')).toHaveCount(0);
-  await expect(page.getByText('Upload photo')).toHaveCount(0);
-  await expect(page.locator('figure img')).toHaveCount(0);
-  expect(apiPhotoCalled).toBe(false);
+  const h1 = page.getByRole('heading', { level: 1 });
+  const fontSize = await h1.evaluate((el) => parseFloat(window.getComputedStyle(el).fontSize));
+  expect(fontSize).toBeLessThanOrEqual(80);
 });
 
-test('owner mode (?owner=1) shows upload slot, saves photo to localStorage, and second context never sees it', async ({ browser, page }) => {
+test('on localhost the slot shows "Upload the image", saves photo, keeps natural aspect ratio, and survives reload', async ({ page }) => {
   let apiPhotoCalled = false;
   page.on('request', (req) => {
     if (req.url().includes('/api/photo')) {
@@ -90,15 +83,16 @@ test('owner mode (?owner=1) shows upload slot, saves photo to localStorage, and 
     }
   });
 
-  // 1. Visit with ?owner=1
-  await page.goto('/?owner=1');
-  await expect(page.getByText('Upload photo')).toBeVisible();
-  await expect(page.getByText('Stored only in this browser. Visitors cannot see it.')).toBeVisible();
+  // On localhost:4173 (standard test runner hostname)
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Upload the image' })).toBeVisible();
+  await expect(page.getByText('Upload the image')).toBeVisible();
+  await expect(page.getByText('Stored only in this browser.')).toBeVisible();
 
-  // 2. Set an image directly into localStorage simulating downscaled upload
+  // Save an image directly into localStorage simulating downscaled upload
   const sample1x1Png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
   await page.evaluate((imgData) => {
-    localStorage.setItem('portfolio-owner-photo', imgData);
+    localStorage.setItem('portfolio-localhost-photo', imgData);
   }, sample1x1Png);
 
   // Reload to verify persistence in this browser
@@ -108,16 +102,38 @@ test('owner mode (?owner=1) shows upload slot, saves photo to localStorage, and 
   const fit = await img.evaluate((el: HTMLImageElement) => getComputedStyle(el).objectFit);
   expect(fit).not.toBe('cover'); // natural aspect ratio, no cover crop
 
-  // 3. Open a completely separate browser context (clean visitor)
-  const visitorContext = await browser.newContext();
-  const visitorPage = await visitorContext.newPage();
-  await visitorPage.goto('/');
-  await expect(visitorPage.getByTestId('photo-input')).toHaveCount(0);
-  await expect(visitorPage.getByText('Upload photo')).toHaveCount(0);
-  await expect(visitorPage.locator('figure img')).toHaveCount(0);
-  await visitorContext.close();
+  // Change and Remove controls are visible
+  await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+
+  // Test Remove button
+  await page.getByRole('button', { name: 'Remove' }).click();
+  await expect(page.getByRole('button', { name: 'Upload the image' })).toBeVisible();
 
   // Verify no network request was made to /api/photo
+  expect(apiPhotoCalled).toBe(false);
+});
+
+test('simulated non-local host shows no slot, no controls, and no photo', async ({ page }) => {
+  let apiPhotoCalled = false;
+  page.on('request', (req) => {
+    if (req.url().includes('/api/photo')) {
+      apiPhotoCalled = true;
+    }
+  });
+
+  // Stub hostname to simulate deployed site (e.g., saivimenthanvl-ai.com) before navigation
+  await page.addInitScript(() => {
+    (window as any).__FORCE_HOSTNAME__ = 'saivimenthanvl-ai.com';
+  });
+
+  await page.goto('/');
+  await expect(page.getByTestId('photo-input')).toHaveCount(0);
+  await expect(page.getByText('Upload the image')).toHaveCount(0);
+  await expect(page.getByText('Upload photo')).toHaveCount(0);
+  await expect(page.locator('figure img')).toHaveCount(0);
+  await expect(page.getByText('Stored only in this browser.')).toHaveCount(0);
+
   expect(apiPhotoCalled).toBe(false);
 });
 
