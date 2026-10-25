@@ -1,6 +1,37 @@
-import React, { Suspense, lazy, useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef, Component } from 'react';
 
 const Spline = lazy(() => import('@splinetool/react-spline'));
+
+interface SplineErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+}
+
+interface SplineErrorBoundaryState {
+  hasError: boolean;
+}
+
+class SplineErrorBoundary extends Component<SplineErrorBoundaryProps, SplineErrorBoundaryState> {
+  constructor(props: SplineErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.warn('Spline 3D Scene failed to load, falling back to static poster:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 interface SplineSceneProps {
   scene: string;
@@ -8,6 +39,8 @@ interface SplineSceneProps {
 }
 
 export function SplineScene({ scene, className }: SplineSceneProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
   const [shouldLoad, setShouldLoad] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
@@ -25,65 +58,93 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
     const isSmallScreen = window.innerWidth < 768;
 
     if (motionQuery.matches || isSaveData || isSlowConn || isSmallScreen) {
-      // Don't auto-mount heavy 3D scene on restricted conditions
       return () => {
         motionQuery.removeEventListener('change', onMotionChange);
       };
     }
 
-    // Lazy load after first paint / idle
+    // Lazy load only when in view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '150px' }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      motionQuery.removeEventListener('change', onMotionChange);
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isInView || prefersReducedMotion) return;
+
     if ('requestIdleCallback' in window) {
       const handle = (window as unknown as { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(() => {
         setShouldLoad(true);
       });
       return () => {
-        motionQuery.removeEventListener('change', onMotionChange);
         if ('cancelIdleCallback' in window) {
           (window as unknown as { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(handle);
         }
       };
     } else {
-      const timer = setTimeout(() => setShouldLoad(true), 250);
-      return () => {
-        motionQuery.removeEventListener('change', onMotionChange);
-        clearTimeout(timer);
-      };
+      const timer = setTimeout(() => setShouldLoad(true), 200);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [isInView, prefersReducedMotion]);
+
+  const staticPoster = (
+    <div className="relative w-full h-full min-h-[300px] flex items-center justify-center bg-wash/30 rounded-2xl border border-rule/50">
+      <div className="absolute inset-0 bg-radial from-signal/10 via-wash/20 to-transparent blur-2xl pointer-events-none" />
+      <div className="relative flex flex-col items-center justify-center p-6 text-center">
+        <div className="h-40 w-40 sm:h-48 sm:w-48 rounded-full border border-rule bg-wash/80 p-2 shadow-xl backdrop-blur-md flex items-center justify-center">
+          <div className="h-28 w-28 sm:h-36 sm:w-36 rounded-full border border-signal/30 bg-gradient-to-tr from-wash to-paper flex flex-col items-center justify-center p-2">
+            <span className="font-mono text-xs font-semibold text-signal uppercase tracking-widest">3D SCENE</span>
+            <span className="font-mono text-[10px] text-mute mt-1">Interactive Core</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div
+      ref={containerRef}
       aria-hidden="true"
-      className={`relative w-full h-full flex items-center justify-center overflow-hidden pointer-events-auto ${className ?? ''}`}
+      className={`relative w-full h-full min-h-[300px] flex items-center justify-center overflow-hidden pointer-events-auto ${className ?? ''}`}
       data-testid="spline-scene-container"
     >
       {prefersReducedMotion || !shouldLoad ? (
-        // Static decorative fallback / fixed-height skeleton avoiding CLS
-        <div className="relative w-full h-full flex items-center justify-center">
-          <div className="absolute inset-0 bg-radial from-violet-500/15 via-cyan-500/10 to-transparent blur-2xl" />
-          <div className="relative flex flex-col items-center justify-center p-6 text-center">
-            <div className="h-44 w-44 rounded-full border border-violet-400/30 bg-gradient-to-tr from-violet-950/40 via-cyan-950/20 to-slate-900/60 p-1 shadow-2xl shadow-violet-500/10 backdrop-blur-md flex items-center justify-center">
-              <div className="h-32 w-32 rounded-full border border-cyan-400/25 bg-gradient-to-br from-violet-500/20 to-cyan-500/10 flex items-center justify-center">
-                <span className="font-mono text-xs text-cyan-300/80 tracking-widest uppercase">AI · 3D</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        staticPoster
       ) : (
-        <Suspense
-          fallback={
-            <div className="relative w-full h-full flex items-center justify-center">
-              <div className="absolute inset-0 bg-radial from-violet-500/15 via-cyan-500/10 to-transparent blur-2xl animate-pulse" />
-              <div className="h-44 w-44 rounded-full border border-violet-400/20 bg-slate-900/50 backdrop-blur-md" />
-            </div>
-          }
-        >
-          <Spline
-            scene={scene}
-            className="w-full h-full"
-          />
-        </Suspense>
+        <SplineErrorBoundary fallback={staticPoster}>
+          <Suspense
+            fallback={
+              <div className="relative w-full h-full min-h-[300px] flex items-center justify-center bg-wash/20 rounded-2xl border border-rule/40">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-signal border-t-transparent animate-spin" />
+                  <span className="font-mono text-xs text-mute">Loading 3D asset...</span>
+                </div>
+              </div>
+            }
+          >
+            <Spline
+              scene={scene}
+              className="w-full h-full"
+            />
+          </Suspense>
+        </SplineErrorBoundary>
       )}
     </div>
   );
 }
+

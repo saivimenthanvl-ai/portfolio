@@ -68,7 +68,7 @@ export function Spotlight({
       aria-hidden="true"
     >
       <motion.div
-        className="absolute rounded-full bg-gradient-to-r from-violet-500/20 via-cyan-400/20 to-transparent blur-3xl"
+        className="absolute rounded-full bg-gradient-to-r from-signal/15 via-mute/10 to-transparent blur-3xl"
         style={{
           width: size,
           height: size,

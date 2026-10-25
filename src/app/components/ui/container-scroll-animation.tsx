@@ -100,8 +100,8 @@ export const Card = ({
 }) => {
   if (prefersReducedMotion) {
     return (
-      <div className="max-w-5xl w-full max-w-full -mt-6 mx-auto border-2 md:border-4 border-[#2d2948] p-2 md:p-6 bg-[#090b14] rounded-2xl md:rounded-[24px] shadow-2xl">
-        <div className="h-full w-full overflow-hidden rounded-xl md:rounded-2xl bg-[#0d0f1b] p-3 md:p-6">
+      <div className="max-w-5xl w-full max-w-full -mt-6 mx-auto border-2 md:border-4 border-rule p-2 md:p-6 bg-paper rounded-2xl md:rounded-[24px] shadow-2xl">
+        <div className="h-full w-full overflow-hidden rounded-xl md:rounded-2xl bg-wash/50 p-3 md:p-6 text-ink">
           {children}
         </div>
       </div>
@@ -114,11 +114,11 @@ export const Card = ({
         rotateX: rotate,
         scale,
         boxShadow:
-          '0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003',
+          '0 20px 40px -15px rgba(0,0,0,0.2), 0 0 0 1px var(--rule)',
       }}
-      className="max-w-5xl w-full max-w-full -mt-6 mx-auto border-2 md:border-4 border-[#2d2948] p-2 md:p-6 bg-[#090b14] rounded-2xl md:rounded-[24px] shadow-2xl"
+      className="max-w-5xl w-full max-w-full -mt-6 mx-auto border-2 md:border-4 border-rule p-2 md:p-6 bg-paper rounded-2xl md:rounded-[24px]"
     >
-      <div className="h-full w-full overflow-hidden rounded-xl md:rounded-2xl bg-[#0d0f1b] p-3 md:p-6">
+      <div className="h-full w-full overflow-hidden rounded-xl md:rounded-2xl bg-wash/50 p-3 md:p-6 text-ink">
         {children}
       </div>
     </motion.div>

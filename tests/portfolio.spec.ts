@@ -95,3 +95,38 @@ test('uploaded photo is shown whole, at its own aspect ratio', async ({ page }) 
   expect(r.fit).not.toBe('cover');
   expect(Math.abs(r.natural - r.shown)).toBeLessThan(0.02);
 });
+
+test('demo route renders Spline 3D container or fallback poster and ContainerScroll', async ({ page }) => {
+  await page.goto('/?demo=1');
+  await expect(page.getByRole('heading', { name: 'Spline 3D Scene + Cursor Spotlight', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Container Scroll Animation', level: 2 })).toBeVisible();
+
+  // Spline scene container exists with proper accessibility and visibility
+  const splineContainer = page.getByTestId('spline-scene-container');
+  await expect(splineContainer).toBeVisible();
+  await expect(splineContainer).toHaveAttribute('aria-hidden', 'true');
+
+  // ContainerScroll card transforms or is rendered cleanly
+  const scrollCard = page.getByText('Production Evaluation Card');
+  await expect(scrollCard).toBeVisible();
+
+  // Scroll down and verify page is scrollable
+  await page.evaluate(() => window.scrollTo(0, 500));
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
+test('demo route has no horizontal scroll at mobile 375px', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/?demo=1');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
+test('demo route respects prefers-reduced-motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/?demo=1');
+  const splineContainer = page.getByTestId('spline-scene-container');
+  await expect(splineContainer).toBeVisible();
+  // Static poster should be shown inside splineContainer
+  await expect(splineContainer.getByText('3D SCENE')).toBeVisible();
+});
+
