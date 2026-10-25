@@ -11,6 +11,12 @@ test('renders every resume section', async ({ page }) => {
   await expect(page.getByText('AWS Certified Machine Learning – Specialty')).toBeVisible();
 });
 
+test('declares empty favicon', async ({ page }) => {
+  await page.goto('/');
+  const iconLink = page.locator('link[rel="icon"]');
+  await expect(iconLink).toHaveAttribute('href', 'data:,');
+});
+
 test('lists only the four resume projects, each linked to GitHub', async ({ page }) => {
   await page.goto('/');
   const projects = page.locator('#projects');
@@ -27,6 +33,9 @@ test('lists only the four resume projects, each linked to GitHub', async ({ page
     expect(href).toMatch(/^https:\/\/github\.com\/saivimenthanvl-ai\//);
   }
   await expect(page.getByText('Edge Tracking')).toHaveCount(0);
+  await expect(page.getByText('Monkeypox')).toHaveCount(0);
+  // Check virus project tags
+  await expect(page.getByText('Machine learning / Deep learning / Python')).toBeVisible();
 });
 
 test('theme toggle switches and persists', async ({ page }) => {
@@ -126,6 +135,8 @@ test('visitors see public photo at natural aspect ratio when photo exists', asyn
   const img = page.getByRole('img', { name: 'Sai Vimenthan V L' });
   await expect(img).toBeVisible();
   await expect(page.getByText('Upload photo')).toHaveCount(0);
+  const fit = await img.evaluate((el: HTMLImageElement) => getComputedStyle(el).objectFit);
+  expect(fit).not.toBe('cover');
 });
 
 test('photo management requires owner passphrase', async ({ page }) => {

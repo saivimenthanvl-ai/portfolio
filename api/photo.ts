@@ -83,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (!token) {
-    return res.status(500).json({ error: 'BLOB_READ_WRITE_TOKEN is not configured on the server' });
+    return res.status(500).json({ error: 'Storage not configured. Please attach a Vercel Blob store to this project.' });
   }
 
   // 2. POST /api/photo - Owner upload
