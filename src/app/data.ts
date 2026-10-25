@@ -3,9 +3,8 @@ const GH = 'https://github.com/saivimenthanvl-ai';
 export const profile = {
   name: 'Sai Vimenthan V L',
   role: 'LLM Developer',
-  tagline: ['LLM fine-tuning', 'Structured outputs', 'Full-stack AI apps'],
   summary:
-    'AI and LLM developer experienced in Qwen3-4B structured-output evaluation, LoRA/QLoRA workflows, and GPU-based language-model experimentation. Built full-stack Next.js, React, Supabase, and Firebase applications with authentication, APIs, and location-based services.',
+    'I build language-model systems and the web apps around them. I fine-tune and test LLMs to give reliable, structured answers, and I build full-stack apps with React, Next.js, Supabase and Firebase so people can actually use them.',
   location: 'Chennai, India',
   email: 'saivimenthanvl@gmail.com',
   phone: '+91 7200260670',
@@ -111,13 +110,13 @@ export const skills = [
   { group: 'Languages', items: ['Python', 'Java', 'JavaScript', 'TypeScript', 'SQL'] },
   {
     group: 'AI / LLM',
-    items: ['PyTorch', 'TensorFlow/Keras', 'Hugging Face Transformers', 'PEFT', 'LoRA/QLoRA', 'Qwen', 'Accelerate', 'RAG', 'OpenCV', 'OCR'],
+    items: ['PyTorch', 'TensorFlow/Keras', 'Hugging Face Transformers', 'Qwen', 'RAG', 'OpenCV'],
   },
   {
     group: 'Full-stack',
-    items: ['React', 'Next.js', 'Node.js/Express', 'FastAPI', 'Firebase', 'Supabase/PostgreSQL', 'REST APIs', 'Authentication', 'RLS'],
+    items: ['React', 'Next.js', 'Node.js/Express', 'FastAPI', 'Firebase', 'Supabase/PostgreSQL', 'REST APIs'],
   },
-  { group: 'Infrastructure', items: ['Git/GitHub', 'Docker', 'AWS', 'RunPod GPUs', 'Google Maps API', 'Vercel'] },
+  { group: 'Infrastructure', items: ['Git', 'GitHub', 'Linux'] },
 ];
 
 export const education = [

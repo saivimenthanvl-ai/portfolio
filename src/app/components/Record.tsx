@@ -96,7 +96,7 @@ export function Contact() {
       <Reveal>
         <a
           href={`mailto:${profile.email}`}
-          className="block break-words text-[clamp(1.75rem,6vw,5rem)] font-medium leading-tight tracking-[-0.035em] text-ink decoration-signal decoration-2 underline-offset-[0.18em] hover:underline"
+          className="inline-block max-w-full [overflow-wrap:anywhere] text-[clamp(1.25rem,2.6vw,2rem)] font-normal leading-snug tracking-tight text-ink decoration-signal decoration-1 underline-offset-[0.2em] hover:underline"
         >
           {profile.email}
         </a>

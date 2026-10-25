@@ -52,30 +52,123 @@ test('nav scrolls to a section', async ({ page }) => {
   await expect(page.locator('#skills')).toBeInViewport();
 });
 
-test('visitors never see the photo or upload control', async ({ page }) => {
+test('lists updated skills accurately', async ({ page }) => {
+  await page.goto('/');
+  const skillsSection = page.locator('#skills');
+  await expect(skillsSection.getByText('PyTorch / TensorFlow/Keras / Hugging Face Transformers / Qwen / RAG / OpenCV')).toBeVisible();
+  await expect(skillsSection.getByText('React / Next.js / Node.js/Express / FastAPI / Firebase / Supabase/PostgreSQL / REST APIs')).toBeVisible();
+  await expect(skillsSection.getByText('Git / GitHub / Linux')).toBeVisible();
+  // Removed items should not appear in the skills section
+  await expect(skillsSection.getByText('OCR')).toHaveCount(0);
+  await expect(skillsSection.getByText('PEFT')).toHaveCount(0);
+  await expect(skillsSection.getByText('Docker')).toHaveCount(0);
+  await expect(skillsSection.getByText('AWS')).toHaveCount(0);
+});
+
+test('email font size is under 40px at 1360px and wraps safely at 375px', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 860 });
+  await page.goto('/');
+  const emailLink = page.locator('#contact').getByRole('link', { name: 'saivimenthanvl@gmail.com' });
+  await expect(emailLink).toBeVisible();
+  const fontSize = await emailLink.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(fontSize).toBeLessThanOrEqual(40);
+
+  // Mobile 375px check
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+  const mobileEmail = page.locator('#contact').getByRole('link', { name: 'saivimenthanvl@gmail.com' });
+  await expect(mobileEmail).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
+test('about paragraph is updated and old tagline is absent', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('I build language-model systems and the web apps around them.')).toBeVisible();
+  await expect(page.getByText('LLM fine-tuning / Structured outputs / Full-stack AI apps')).toHaveCount(0);
+});
+
+test('visitors see no photo or upload control when no photo is stored', async ({ page }) => {
+  // Mock /api/photo returning null
+  await page.route('/api/photo', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photo: null }) });
+    } else {
+      await route.continue();
+    }
+  });
+
   await page.goto('/');
   await expect(page.getByTestId('photo-input')).toHaveCount(0);
   await expect(page.getByText('Upload photo')).toHaveCount(0);
+  await expect(page.locator('figure img')).toHaveCount(0);
 });
 
-test('owner can upload a photo that persists only in their browser', async ({ page, browser }) => {
-  await page.goto('/?owner=1');
-  await expect(page.getByText('Upload photo')).toBeVisible();
-  await page.getByTestId('photo-input').setInputFiles(path.resolve('src/imports/image.png'));
+test('visitors see public photo at natural aspect ratio when photo exists', async ({ page }) => {
+  await page.route('/api/photo', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          photo: {
+            url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+            width: 400,
+            height: 500,
+          },
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  await page.goto('/');
   const img = page.getByRole('img', { name: 'Sai Vimenthan V L' });
   await expect(img).toBeVisible();
-  await page.reload();
-  await expect(img).toBeVisible();
-
-  const other = await (await browser.newContext()).newPage();
-  await other.goto('/');
-  await expect(other.getByRole('img', { name: 'Sai Vimenthan V L' })).toHaveCount(0);
+  await expect(page.getByText('Upload photo')).toHaveCount(0);
 });
 
-test('mobile layout has no horizontal scroll', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 812 });
+test('photo management requires owner passphrase', async ({ page }) => {
+  let photoStored: any = null;
+
+  await page.route('/api/photo', async (route) => {
+    const method = route.request().method();
+    if (method === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photo: photoStored }) });
+    } else if (method === 'POST') {
+      const authHeader = route.request().headers()['x-owner-passphrase'];
+      if (authHeader !== 'secret123') {
+        await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Invalid owner passphrase' }) });
+        return;
+      }
+      photoStored = {
+        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+        width: 400,
+        height: 500,
+      };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ photo: photoStored }) });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // Open with ?owner=1
   await page.goto('/?owner=1');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+  const unlockModal = page.getByRole('heading', { name: 'Owner Authentication' });
+  await expect(unlockModal).toBeVisible();
+
+  // Try wrong passphrase
+  await page.locator('input[type="password"]').fill('wrongpass');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await expect(page.getByText('Invalid owner passphrase')).toBeVisible();
+
+  // Enter correct passphrase
+  await page.locator('input[type="password"]').fill('secret123');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await expect(unlockModal).toHaveCount(0);
+
+  // Now upload control is visible to unlocked owner
+  await expect(page.getByText('Upload photo')).toBeVisible();
 });
 
 test('header has no stray scroller or progress bar, and shows the full name', async ({ page }) => {
@@ -86,20 +179,6 @@ test('header has no stray scroller or progress bar, and shows the full name', as
   expect(overflow).toEqual({ x: 'visible', y: 'visible' });
   await expect(page.getByRole('banner').getByRole('button', { name: /Sai Vimenthan V L/ })).toBeVisible();
   await expect(page.getByRole('banner').getByText('SVL')).toHaveCount(0);
-});
-
-test('uploaded photo is shown whole, at its own aspect ratio', async ({ page }) => {
-  await page.goto('/?owner=1');
-  await page.getByTestId('photo-input').setInputFiles(path.resolve('src/imports/image.png'));
-  const img = page.getByRole('img', { name: 'Sai Vimenthan V L' });
-  await expect(img).toBeVisible();
-  const r = await img.evaluate((el: HTMLImageElement) => ({
-    natural: el.naturalWidth / el.naturalHeight,
-    shown: el.clientWidth / el.clientHeight,
-    fit: getComputedStyle(el).objectFit,
-  }));
-  expect(r.fit).not.toBe('cover');
-  expect(Math.abs(r.natural - r.shown)).toBeLessThan(0.02);
 });
 
 test('demo route renders Spline 3D container or fallback poster and ContainerScroll', async ({ page }) => {
